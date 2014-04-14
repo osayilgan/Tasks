@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="50dp"
+    android:background="#FFFFFF"
+    android:paddingLeft="8dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:paddingRight="10dp" >
+    
+    <ImageView 
+        android:id="@+id/twitter_item_user_profile_image"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/ic_launcher"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="false"
+        android:layout_alignParentLeft="true" />
+	
+    <RelativeLayout 
+        android:id="@+id/twitter_name_holder"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:paddingLeft="10dp"
+        android:layout_toRightOf="@+id/twitter_item_user_profile_image"
+        android:layout_toLeftOf="@+id/twitter_item_time" >
+        
+        <TextView 
+            android:id="@+id/twitter_item_user_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VVV Terschelling"
+            android:textColor="@android:color/black"
+            android:layout_alignParentTop="true"
+            android:textSize="15dp" />
+        
+        <TextView
+            android:id="@+id/twitter_item_screen_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="\@terschellingvvv"
+            android:textColor="#8F8F8F"
+            android:textSize="11dp"
+            android:layout_alignParentBottom="true" />
+    </RelativeLayout>
+    
+    <TextView 
+        android:id="@+id/twitter_item_tweet_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/light_grey"
+        android:textSize="11dp"
+        android:layout_alignParentRight="true" />
+</RelativeLayout>

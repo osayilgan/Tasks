@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@android:color/white"
+    android:padding="15dp" >
+    
+	<TextView
+	    android:id="@+id/twitter_item_content"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:textSize="12dp"
+	    android:textColor="#404040"
+	    android:text="Zaterdag 21 december Plotsys baken met Flang #Terschelling. Aanvang 12.00 uur" />
+	
+	<ImageView 
+	    android:id="@+id/twitter_item_attachedImage"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:layout_marginTop="15dp" />
+    
+</LinearLayout>

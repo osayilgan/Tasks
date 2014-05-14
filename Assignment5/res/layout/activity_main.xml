@@ -1,0 +1,33 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#000000"
+    android:gravity="top"
+    tools:context=".CameraPreviewActivity" >  
+
+    <FrameLayout
+        android:id="@+id/camera_preview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+    
+    <ImageView
+		android:id="@+id/pauseButton"
+		android:layout_width="50dp"
+		android:layout_height="50dp"
+		android:layout_alignParentLeft="true"
+		android:layout_alignParentTop="true"
+		android:scaleType="fitXY"
+		android:src="@drawable/pause" />
+
+	 <ImageView
+		android:id="@+id/switchCameraButton"
+		android:layout_width="50dp"
+		android:layout_height="50dp"
+		android:layout_alignParentRight="true"
+		android:layout_alignParentTop="true"
+		android:scaleType="fitXY"
+		android:src="@drawable/switchcam" />
+</RelativeLayout>

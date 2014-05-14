@@ -1,5 +1,10 @@
 package edu.ceng.bim494;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -7,10 +12,16 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Rect;
+import org.opencv.core.Size;
+import org.opencv.objdetect.CascadeClassifier;
 
 import uk.co.senab.photoview.PhotoViewAttacher;
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
@@ -25,6 +36,7 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity implements CvCameraViewListener2, OnClickListener {
 	
@@ -36,6 +48,11 @@ public class MainActivity extends Activity implements CvCameraViewListener2, OnC
 	private Button				mButton;
 	private ImageView			captureImage;
 	private PhotoViewAttacher	mAttacher;
+	
+	private File                mCascadeFile;
+	private CascadeClassifier   mJavaDetector;
+	
+	private final int MIN_FACE_SIZE = 100;
 	
 	/**
 	 * Enum to define different states of the Capture Button.
@@ -51,6 +68,36 @@ public class MainActivity extends Activity implements CvCameraViewListener2, OnC
 		public void onManagerConnected(int status) {
 			switch (status) {
 			case LoaderCallbackInterface.SUCCESS: {
+				
+				try {
+                    // load cascade file from application resources
+                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+                    File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+                    FileOutputStream os = new FileOutputStream(mCascadeFile);
+                    
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                    }
+                    is.close();
+                    os.close();
+                    
+                    mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+                    if (mJavaDetector.empty()) {
+                        Log.e(TAG, "Failed to load cascade classifier");
+                        mJavaDetector = null;
+                    } else
+                        Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
+                    
+                    cascadeDir.delete();
+                    
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
+                }
+				
 				
 				mOpenCvCameraView.enableView();
 				mButton.setOnClickListener(MainActivity.this);
@@ -106,9 +153,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2, OnC
 			mOpenCvCameraView.disableView();
 			mOpenCvCameraView.setVisibility(View.GONE);
 			
-			/* Draw Mask Here */
-			drawMaskOnBitmap(frame);
-			
 			/* Activate and Set Image Bitmap */
 			captureImage.setVisibility(View.VISIBLE);
 			captureImage.setImageBitmap(frame);
@@ -118,6 +162,35 @@ public class MainActivity extends Activity implements CvCameraViewListener2, OnC
 			
 			/* Change Text */
 			mButton.setText("Show Preview");
+			
+			/* Detect Multiple Faces */
+			MatOfRect faces = new MatOfRect();
+			if (mJavaDetector != null) {
+                mJavaDetector.detectMultiScale(inputFrame, faces, 1.1, 2, 2, new Size(MIN_FACE_SIZE, MIN_FACE_SIZE), new Size());
+			}
+			
+			/* Create Faces Array */
+			Rect[] facesArray = faces.toArray();
+			
+			/* Return, if no faces are detected */
+			if (facesArray.length <= 0) {
+				Toast.makeText(this, "No faces detected !", Toast.LENGTH_SHORT).show();
+				return;
+			}
+			
+	        for (int i = 0; i < facesArray.length; i++) {
+	        	
+	        	int top = facesArray[i].x;
+	        	int left = facesArray[i].y;
+	        	int width = facesArray[i].width;
+	        	int height = facesArray[i].height;
+	        	
+	        	Log.i("Okan", "top : " + top + ", left : " + left);
+	        	Log.i("Okan", "width : " + width + ", height : " + height);
+	        	
+	        	/* Draw Mask Here */
+				drawMaskOnBitmap(frame, top, left, width, height);
+	        }
 			
 		} else {
 			
@@ -158,20 +231,20 @@ public class MainActivity extends Activity implements CvCameraViewListener2, OnC
 	 * 
 	 * @param bitmap
 	 */
-	private void drawMaskOnBitmap(Bitmap bitmap) {
+	private void drawMaskOnBitmap(Bitmap bitmap, int top, int left, int width, int height) {
 		
 		/* Create Canvas with Bitmap */
 		Canvas canvas = new Canvas(bitmap);
 		
 		/* Load Mask from Resources */
 		Bitmap mask = BitmapFactory.decodeResource(this.getResources(), R.drawable.mask); 
-		mask = Bitmap.createScaledBitmap(mask, 100, 100, true);
+		mask = Bitmap.createScaledBitmap(mask, width, height, true);
 		
 		Paint paint = new Paint();
 		
 		/* This Line creates a Frame around the Mask */
 //		paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
-		canvas.drawBitmap(mask, 200, 200, paint);
+		canvas.drawBitmap(mask, top, left, paint);
 		
 		/* We do not need the mask bitmap anymore. */
 		mask.recycle();

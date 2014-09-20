@@ -1,27 +1,30 @@
 package edu.ceng.bim494;
 
-import com.qualcomm.snapdragon.sdk.face.FaceData;
-import com.qualcomm.snapdragon.sdk.face.FacialProcessing;
-import com.qualcomm.snapdragon.sdk.face.FacialProcessing.PREVIEW_ROTATION_ANGLE;
+import java.text.SimpleDateFormat;
 
-import android.hardware.Camera;
-import android.hardware.Camera.Parameters;
-import android.hardware.Camera.Size;
-import android.media.MediaPlayer;
-import android.os.Bundle;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
+import android.hardware.Camera.Size;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.View.OnClickListener;
-import android.view.View.OnTouchListener;
-import android.view.ViewGroup.LayoutParams;
+import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+import com.qualcomm.snapdragon.sdk.face.FaceData;
+import com.qualcomm.snapdragon.sdk.face.FacialProcessing;
+import com.qualcomm.snapdragon.sdk.face.FacialProcessing.PREVIEW_ROTATION_ANGLE;
 
 public class MainActivity extends Activity implements Camera.PreviewCallback {
 	
@@ -46,41 +49,55 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 	// Boolean to check if the camera is switched to back camera or no.
 	static boolean cameraSwitch = false;
 	
-	// Boolean to check if the face data info is displayed or no.
-	boolean info = false;
-	
 	// Boolean to check if the phone orientation is in landscape mode or portrait mode.
 	boolean landScapeMode = false;
 	
 	int cameraIndex; // Integer to keep track of which camera is open.
-	int smileValue = 0;
 	int leftEyeBlink = 0;
 	int rightEyeBlink = 0;
 	
 	int surfaceWidth = 0;
 	int surfaceHeight = 0;
 	
-	float rounded;
 	Display display;
 	int displayAngle;
 	
-	/* Sound Variables */
-	MediaPlayer mediaPlayer;
-
+	/* UI for blink information */
+	private TextView avarageBlinkCount;
+	
+	/* Counter to keep the number of Blinks */
+	private int totalBlinkCount;
+	
+	/* Count Up Timer to find the Average Blink Count */
+	CountUpTimer timer;
+	
+	/* Date Format to format timer time */
+	private SimpleDateFormat format = new SimpleDateFormat("mm:ss");
+	
+	private boolean isTimerStarted = false;
+	private int previousFrameBlinkValue = 0;
+	private RelativeLayout wall;
+	
+	/* Array to Hold the hex colors */
+	private String[] colorArray = {"#ff4af224", "#ff07b8ff", "#ffeef435", "#ffff4444"};
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		/* Create a new media player with Buzzer Sound */
-		mediaPlayer = MediaPlayer.create(this, R.raw.buzzer);
+		initializeUI();
+		
+		/* Initialize Timer */
+		// TODO, create a dialog to ask if the user wants to start over or resume from previous one.
+		timer = new CountUpTimer(this);
 		
 		// Create our Preview view and set it as the content of our activity.
 		preview = (FrameLayout) findViewById(R.id.camera_preview);
 		
 		// Check to see if the FacialProc feature is supported in the device or no.
 		_qcSDKEnabled = FacialProcessing.isFeatureSupported(FacialProcessing.FEATURE_LIST.FEATURE_FACIAL_PROCESSING);
-
+		
 		if (_qcSDKEnabled && faceProc == null) {
 			Log.e("TAG", "Feature is supported");
 			faceProc = FacialProcessing.getInstance(); // Calling the Facial
@@ -99,80 +116,38 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 			// Camera is not available (in use or does not exist)
 			Log.d("TAG", "Camera Does Not exist");
 		}
-
+		
 		// Change the sizes according to phone's compatibility.
-		mPreview = new CameraSurfacePreview(MainActivity.this, cameraObj,
-				faceProc);
+		mPreview = new CameraSurfacePreview(MainActivity.this, cameraObj, faceProc);
 		preview.removeView(mPreview);
 		preview = (FrameLayout) findViewById(R.id.camera_preview);
 		preview.addView(mPreview);
 		cameraObj.setPreviewCallback(MainActivity.this);
-
-		// Action listener for the screen touch to display the face data info.
-		touchScreenListener();
-
+		
 		// Action listener for the Pause Button.
 		pauseActionListener();
-
+		
 		// Action listener for the Switch Camera Button.
 		cameraSwitchActionListener();
-
-		display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
-				.getDefaultDisplay();
+		
+		display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 	}
-
-	/*
-	 * Function for the screen touch action listener. On touching the screen,
-	 * the face data info will be displayed.
+	
+	/**
+	 * Initializes the UI elements
 	 */
-	private void touchScreenListener() {
-
-		preview.setOnTouchListener(new OnTouchListener() {
-
-			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-
-				switch (event.getAction()) {
-
-				case MotionEvent.ACTION_DOWN:
-
-					if (!info) {
-
-						LayoutParams layoutParams = preview.getLayoutParams();
-
-						if (MainActivity.this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-							int oldHeight = preview.getHeight();
-							layoutParams.height = oldHeight * 3 / 4;
-						} else {
-							int oldHeight = preview.getHeight();
-							layoutParams.height = oldHeight * 80 / 100;
-						}
-
-						preview.setLayoutParams(layoutParams);
-
-						// Setting the changed parameters for the layout.
-						info = true;
-					} else {
-
-						LayoutParams layoutParams = preview.getLayoutParams();
-						layoutParams.height = LayoutParams.WRAP_CONTENT;
-						preview.setLayoutParams(layoutParams);
-
-						// Setting the changed parameters for the layout.
-						info = false;
-					}
-					break;
-
-				case MotionEvent.ACTION_MOVE:
-					break;
-
-				case MotionEvent.ACTION_UP:
-					break;
-				}
-
-				return true;
-			}
-		});
+	private void initializeUI() {
+		
+		avarageBlinkCount = (TextView) findViewById(R.id.avarageBlinkCount);
+		wall = (RelativeLayout) findViewById(R.id.mContainer);
+	}
+	
+	/**
+	 * Sets UI information for Right and Left Blink.
+	 * And also for the total value of Blink Duration.
+	 */
+	private void setUIInformation(int mAvarageBlinkCount) {
+		avarageBlinkCount.setText(mAvarageBlinkCount);
 	}
 
 	/*
@@ -230,10 +205,15 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 				if (!cameraPause) {
 					cameraObj.stopPreview();
 					cameraPause = true;
+					
+					timer.pause();
+					
 				} else {
 					cameraObj.startPreview();
 					cameraObj.setPreviewCallback(MainActivity.this);
 					cameraPause = false;
+					
+					timer.resume();
 				}
 			}
 		});
@@ -317,40 +297,40 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 	 */
 	@Override
 	public void onPreviewFrame(byte[] data, Camera arg1) {
-
+		
 		int dRotation = display.getRotation();
 		PREVIEW_ROTATION_ANGLE angleEnum = PREVIEW_ROTATION_ANGLE.ROT_0;
-
+		
 		switch (dRotation) {
 		case 0:
 			displayAngle = 90;
 			angleEnum = PREVIEW_ROTATION_ANGLE.ROT_90;
 			break;
-
+			
 		case 1:
 			displayAngle = 0;
 			angleEnum = PREVIEW_ROTATION_ANGLE.ROT_0;
 			break;
-
+			
 		case 2:
 			// This case is never reached.
 			break;
-
+			
 		case 3:
 			displayAngle = 180;
 			angleEnum = PREVIEW_ROTATION_ANGLE.ROT_180;
 			break;
 		}
-
+		
 		if (faceProc == null) {
 			faceProc = FacialProcessing.getInstance();
 		}
-
+		
 		Parameters params = cameraObj.getParameters();
 		Size previewSize = params.getPreviewSize();
 		surfaceWidth = mPreview.getWidth();
 		surfaceHeight = mPreview.getHeight();
-
+		
 		// Landscape mode - front camera
 		if (this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
 				&& !cameraSwitch) {
@@ -359,7 +339,7 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 			cameraObj.setDisplayOrientation(displayAngle);
 			landScapeMode = true;
 		}
-
+		
 		// landscape mode - back camera
 		else if (this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
 				&& cameraSwitch) {
@@ -368,7 +348,7 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 			cameraObj.setDisplayOrientation(displayAngle);
 			landScapeMode = true;
 		}
-
+		
 		// Portrait mode - front camera
 		else if (this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT
 				&& !cameraSwitch) {
@@ -377,63 +357,107 @@ public class MainActivity extends Activity implements Camera.PreviewCallback {
 			cameraObj.setDisplayOrientation(displayAngle);
 			landScapeMode = false;
 		}
-
+		
 		// Portrait mode - back camera
 		else {
-			faceProc.setFrame(data, previewSize.width, previewSize.height,
-					false, angleEnum);
+			faceProc.setFrame(data, previewSize.width, previewSize.height, false, angleEnum);
 			cameraObj.setDisplayOrientation(displayAngle);
 			landScapeMode = false;
 		}
-
+		
 		/* Get number of detected faces */
 		int numFaces = faceProc.getNumFaces();
-
+		
 		/* Clean-up with Garbage Collector */
 		System.gc();
-
+		
 		/* No face detected */
 		if (numFaces == 0) {
-
+			
 			Log.d("TAG", "No Face Detected");
-
-		} else {
-
+			timer.pause();
+			
+		} else if(numFaces > 0) {
+			
 			Log.d("TAG", "Face Detected");
 			faceArray = faceProc.getFaceData();
-
+			
 			if (faceArray == null) {
+				
 				Log.e("TAG", "Face array is null");
-			} else {
-
+				timer.pause();
+				
+			} else if(faceArray.length > 0) {
+				
+				/* Start or Resume the Timer when a face is detected */
+				if (isTimerStarted) {
+					timer.resume();
+				} else {
+					timer.start();
+				}
+				
 				faceProc.normalizeCoordinates(surfaceWidth, surfaceHeight);
-
-				for (int j = 0; j < numFaces; j++) {
-					smileValue = faceArray[j].getSmileValue();
+				
+				for (int j = 0; j < faceArray.length; j++) {
 					leftEyeBlink = faceArray[j].getLeftEyeBlink();
 					rightEyeBlink = faceArray[j].getRightEyeBlink();
 				}
-
-				Log.i("Okan", "Left Eye : " + leftEyeBlink);
-				Log.i("Okan", "Right Eye : " + rightEyeBlink);
-
-				if (leftEyeBlink > 50 || rightEyeBlink > 50) {
-
-					/* Play a Sound Here */
-					playSound();
+				
+				/* Set UI information and color of the Screen */
+				int averageCount = getAverageBlinkCount();
+				setAverageText(averageCount);
+				setBackgroundColor(averageCount);
+				
+				if ((leftEyeBlink > 50) && (rightEyeBlink > 50) && (leftEyeBlink < 100) && (rightEyeBlink < 100)) {
+					
+					if ((Math.max(leftEyeBlink, rightEyeBlink) - previousFrameBlinkValue) > 20) {
+						
+						totalBlinkCount++;
+						previousFrameBlinkValue = Math.max(leftEyeBlink, rightEyeBlink);
+					}
+					
+					Log.i("Okan", "Total Blink Count : " + totalBlinkCount);
+					Log.i("Okan", "Left Eye Blink : " + leftEyeBlink);
+					Log.i("Okan", "Right Eye Blink : " + rightEyeBlink);
+					
+				} else {
+					previousFrameBlinkValue = 0;
 				}
 			}
-
+		} else {
+			timer.pause();
 		}
 	}
-
-	/**
-	 * Plays a Buzzer Sound.
-	 */
-	private void playSound() {
-
-		if (mediaPlayer != null && mediaPlayer.isPlaying() == false) {
-			mediaPlayer.start();
+	
+	public int getAverageBlinkCount() {
+		
+		long seconds = timer.getTime()/1000;
+		
+		if (seconds == 0) {
+			return 0;
 		}
+		
+		return (int) (60*(totalBlinkCount)/seconds);
+	}
+	
+	public void setAverageText(int average) {
+		avarageBlinkCount.setText(average + " p/m");
+	}
+	
+	public void setBackgroundColor(int average) {
+		
+		String color = "";
+		
+		if (average > 22) {
+			color = colorArray[0];
+		} else if(average > 15) {
+			color = colorArray[1];
+		} else if(average > 8) {
+			color = colorArray[2];
+		} else {
+			color = colorArray[3];
+		}
+		
+		wall.setBackgroundColor(Color.parseColor(color));
 	}
 }

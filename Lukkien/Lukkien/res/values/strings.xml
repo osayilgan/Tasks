@@ -13,12 +13,12 @@
 	<string name="twitter_minutes_string">m</string>
 	
 	<!-- Twitter Keys -->
-	<string name="TWITTER_USER_NAME">terschellingvvv</string>
-	<string name="TWITTER_CONSUMER_KEY">J4iRfcVB0F3NOkP2HxCKog</string>
-	<string name="TWITTER_CONSUMER_SECRET">ukSO4OLwhsPbw9mn0i8RxVlc4Nc4S4Q3XPlj8mqtY</string>
-	<string name="TWITTER_ACCESS_TOKEN">23187672-AcouiE544HdLxizYxkRUMWYDzbo2HvNG7vyIrELtG</string>
-	<string name="TWITTER_ACCESS_SECRET">bIlZXyPFypVBKkCkjyM0Ty2CyfG6D971NDCLP4umTSk</string>
-	<string name="TWITTER_SCREEN_NAME">\@terschellingvvv</string>
+	<string name="TWITTER_USER_NAME">user name</string>
+	<string name="TWITTER_CONSUMER_KEY">your consumer key</string>
+	<string name="TWITTER_CONSUMER_SECRET">your consumer secret</string>
+	<string name="TWITTER_ACCESS_TOKEN">access token</string>
+	<string name="TWITTER_ACCESS_SECRET">access token secret</string>
+	<string name="TWITTER_SCREEN_NAME">\@screen_name</string>
 	
 	<!-- Connection Strings -->
 	<string name="check_internet_connection">Please Check Your Internet Connection</string>
